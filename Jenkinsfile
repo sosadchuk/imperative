@@ -34,7 +34,7 @@ node('ubuntu1804-docker-2c-2g') {
         // Git configuration information
         pipeline.gitConfig = [
             email: 'zowe.robot@gmail.com',
-            credentialsId: 'zowe-robot-github'
+            credentialsId: 'zowe-github'
         ]
 
         // npm publish configuration
@@ -129,27 +129,6 @@ node('ubuntu1804-docker-2c-2g') {
             ],
             testResults: [dir: "$INTEGRATION_TEST_ROOT/jest-stare", files: "index.html", name: 'Imperative - Integration Test Report'],
             junitOutput: INTEGRATION_JUNIT_OUTPUT
-        )
-
-        // Perform sonar qube operations
-        pipeline.createStage(
-            name: "SonarQube",
-            stage: {
-                def scannerHome = tool 'sonar-scanner-maven-install'
-                withSonarQubeEnv('sonar-default-server') {
-                    sh "${scannerHome}/bin/sonar-scanner"
-                }
-            }
-        )
-
-        //Upload Reports to Code Coverage
-        pipeline.createStage(
-            name: "Codecov",
-            stage: {
-                withCredentials([usernamePassword(credentialsId: 'CODECOV_ZOWE_IMP', usernameVariable: 'CODECOV_USERNAME', passwordVariable: 'CODECOV_TOKEN')]) {
-                    sh "curl -s https://codecov.io/bash | bash -s"
-                }
-            }
         )
 
         // Check vulnerabilities
