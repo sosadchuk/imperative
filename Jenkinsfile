@@ -13,7 +13,7 @@ node('ubuntu1804-docker-2c-2g') {
     docker.image('markackertca/zowe-base:wip').inside() {
         def lib = library("jenkins-library@user/markackert/oss-updates").org.zowe.jenkins_shared_library;
         // Initialize the pipeline
-        def pipeline = new lib.pipelines.nodejs.NodeJSPipeline(this)
+        def pipeline = lib.pipelines.nodejs.NodeJSPipeline.new(this)
 
         // Build admins, users that can approve the build and receieve emails for 
         // all protected branch builds.
