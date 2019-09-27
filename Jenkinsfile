@@ -8,53 +8,38 @@
 * Copyright Contributors to the Zowe Project.                                     *
 *                                                                                 *
 */
-@Library('shared-pipelines') import org.zowe.pipelines.nodejs.NodeJSPipeline
-
-import org.zowe.pipelines.nodejs.models.SemverLevel
+def lib = library("jenkins-library@user/markackert/oss-updates").org.zowe.jenkins_shared_library;
 
 node('ubuntu1804-docker-2c-2g') {
     docker.image('markackertca/zowe-base:wip').inside() {
         // Initialize the pipeline
-        def pipeline = new NodeJSPipeline(this)
+        def pipeline = new lib.pipelines.nodejs.NodeJSPipeline(this)
 
         // Build admins, users that can approve the build and receieve emails for 
         // all protected branch builds.
         pipeline.admins.add("markackert")
 
         // Comma-separated list of emails that should receive notifications about these builds
-        pipeline.emailList = "mark.ackert@broadcom.com"
+        // pipeline.emailList = "mark.ackert@broadcom.com"
 
         // Protected branch property definitions
-        pipeline.protectedBranches.addMap([
-            [name: "master", tag: "latest", dependencies: ["@zowe/perf-timing": "latest"]],
-            [name: "lts-incremental", tag: "lts-incremental", level: SemverLevel.MINOR, dependencies: ["@zowe/perf-timing": "lts-incremental"]],
-            [name: "lts-stable", tag: "lts-stable", level: SemverLevel.PATCH, dependencies: ["@zowe/perf-timing": "lts-stable"]]
-        ])
-
-        // Git configuration information
-        pipeline.gitConfig = [
-            email: 'zowe.robot@gmail.com',
-            credentialsId: 'zowe-github'
-        ]
-
-        // npm publish configuration
-        pipeline.publishConfig = [
-            email: pipeline.gitConfig.email,
-            credentialsId: 'zowe.jfrog.io',
-            scope: '@zowe'
-        ]
-
-        pipeline.registryConfig = [
-            [
-                email: pipeline.publishConfig.email,
-                credentialsId: pipeline.publishConfig.credentialsId,
-                url: 'https://zowe.jfrog.io/zowe/api/npm/npm-local-release/',
-                scope: pipeline.publishConfig.scope
-            ]
-        ]
-
+        pipeline.branches.addMap([
+            [name: "master", npmTag: "latest", allowRelease: true, allowFormalRelease: true, isProtected: true],
+            [name: "lts-incremental", npmTag: "lts-incremental", allowRelease: true, allowFormalRelease: true, isProtected: true],
+            [name: "lts-stable", npmTag: "lts-stable", allowRelease: true, allowFormalRelease: true, isProtected: true]
+        ]);
+   
         // Initialize the pipeline library, should create 5 steps
-        pipeline.setup()
+        pipeline.setup(
+            github: [
+                email                      : lib.Constants.DEFAULT_GITHUB_ROBOT_EMAIL,
+                usernamePasswordCredential : lib.Constants.DEFAULT_LFJ_GITHUB_ROBOT_CREDENTIAL,
+            ],
+            artifactory: [
+                url                        : lib.Constants.DEFAULT_LFJ_ARTIFACTORY_URL,
+                usernamePasswordCredential : lib.Constants.DEFAULT_LFJ_ARTIFACTORY_ROBOT_CREDENTIAL,
+            ]
+        );
 
         // Create a custom lint stage that runs immediately after the setup.
         pipeline.createStage(
@@ -132,19 +117,15 @@ node('ubuntu1804-docker-2c-2g') {
         )
 
         // Check vulnerabilities
-        pipeline.checkVulnerabilities()
+        //  pipeline.checkVulnerabilities()
 
         // Deploys the application if on a protected branch. Give the version input
         // 30 minutes before an auto timeout approve.
-        pipeline.deploy(
-            versionArguments: [timeout: [time: 30, unit: 'MINUTES']]
-        )
+        pipeline.publish();
 
         def logLocation = "__tests__/__results__"
         // Once called, no stages can be added and all added stages will be executed. On completion
         // appropriate emails will be sent out by the shared library.
-        pipeline.end(archiveFolders: [
-            "$logLocation/log"
-        ])
+        pipeline.end()
     }
 }
