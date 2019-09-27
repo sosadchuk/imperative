@@ -77,9 +77,12 @@ node('ubuntu1804-docker-2c-2g') {
                 JEST_STARE_RESULT_DIR: "${UNIT_TEST_ROOT}/jest-stare",
                 JEST_STARE_RESULT_HTML: "index.html"
             ],
-            testResults: [dir: "${UNIT_TEST_ROOT}/jest-stare", files: "index.html", name: 'Imperative - Unit Test Report'],
-            coverageResults: [dir: "__tests__/__results__/unit/coverage/lcov-report", files: "index.html", name: 'Imperative - Unit Test Coverage Report'],
-            junitOutput: UNIT_JUNIT_OUTPUT,
+            htmlReports: [
+                [dir: "${UNIT_TEST_ROOT}/jest-stare", files: "index.html", name: 'Imperative - Unit Test Report'],
+                [dir: "__tests__/__results__/unit/coverage/lcov-report", files: "index.html", name: 'Imperative - Unit Test Coverage Report'],
+            ],
+            junit: UNIT_JUNIT_OUTPUT,
+            allowMissingJunit: true,
             cobertura: [
                 autoUpdateHealth: false,
                 autoUpdateStability: false,
