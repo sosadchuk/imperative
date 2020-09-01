@@ -238,7 +238,11 @@ export class CliProfileManager extends BasicProfileManager<ICommandProfileTypeCo
         }
 
         for (const prop of Object.keys(this.profileTypeConfiguration.schema.properties)) {
-            profile[prop] = await this.findOptions(this.profileTypeConfiguration.schema.properties[prop], prop, profile[prop], securelyLoadValue);
+            profile[prop] = await this.findOptions(this.profileTypeConfiguration.schema.properties[prop],
+                                                   prop,
+                                                   profile[prop],
+                                                   securelyLoadValue,
+                                                   this.profileTypeConfiguration.schema.required);
         }
 
         // Return the loaded profile
@@ -290,7 +294,11 @@ export class CliProfileManager extends BasicProfileManager<ICommandProfileTypeCo
         }
 
         for (const prop of Object.keys(this.profileTypeConfiguration.schema.properties)) {
-            await this.findOptions(this.profileTypeConfiguration.schema.properties[prop], prop, null, deleteSecureProperty);
+            await this.findOptions(this.profileTypeConfiguration.schema.properties[prop],
+                                   prop,
+                                   null,
+                                   deleteSecureProperty,
+                                   this.profileTypeConfiguration.schema.required);
         }
 
         return super.deleteProfile(parms);
@@ -344,7 +352,11 @@ export class CliProfileManager extends BasicProfileManager<ICommandProfileTypeCo
      * @param {SecureOperationFunction} secureOp - Function to be executed if we are supposed to process secure properties
      * @returns {Promise<any>} Processed version of a property
      */
-    private async findOptions(prop: ICommandProfileProperty, propNamePath: string, propValue: any, secureOp?: SecureOperationFunction): Promise<any> {
+    private async findOptions(prop: ICommandProfileProperty,
+                              propNamePath: string,
+                              propValue: any,
+                              secureOp?: SecureOperationFunction,
+                              reqArray?: string[]): Promise<any> {
         if (!isNullOrUndefined(prop.optionDefinition)) {
             // once we reach a property with an option definition,
             // we now have the complete path to the property
@@ -364,7 +376,11 @@ export class CliProfileManager extends BasicProfileManager<ICommandProfileTypeCo
                 }
 
                 this.log.debug("Performing secure operation on property %s", propNamePath);
-                return secureOp(propNamePath, propValue);
+                let required: boolean = true;
+                if (reqArray && ( reqArray.length === 0 || reqArray.includes(propNamePath.split(".").slice(-1)[0]))) {
+                    required = true;
+                }
+                return secureOp(propNamePath, propValue, required);
             }
             const tempProperties: any = {};
             for (const childPropertyName of Object.keys(prop.properties)) {
@@ -374,7 +390,8 @@ export class CliProfileManager extends BasicProfileManager<ICommandProfileTypeCo
                         propNamePath + "." + childPropertyName,
                         (!isNullOrUndefined(propValue) && !isNullOrUndefined(propValue[childPropertyName])) ?
                             JSON.parse(JSON.stringify(propValue[childPropertyName])) : null,
-                        secureOp
+                        secureOp,
+                        reqArray
                     );
             }
             return tempProperties;
@@ -441,7 +458,11 @@ export class CliProfileManager extends BasicProfileManager<ICommandProfileTypeCo
         }
 
         for (const prop of Object.keys(this.profileTypeConfiguration.schema.properties)) {
-            profile[prop] = await this.findOptions(this.profileTypeConfiguration.schema.properties[prop], prop, profile[prop], securelyStoreValue);
+            profile[prop] = await this.findOptions(this.profileTypeConfiguration.schema.properties[prop],
+                                                   prop,
+                                                   profile[prop],
+                                                   securelyStoreValue,
+                                                   this.profileTypeConfiguration.schema.required);
         }
 
         return profile;
