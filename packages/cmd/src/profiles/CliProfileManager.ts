@@ -376,11 +376,11 @@ export class CliProfileManager extends BasicProfileManager<ICommandProfileTypeCo
                 }
 
                 this.log.debug("Performing secure operation on property %s", propNamePath);
-                let required: boolean = true;
+                let optional: boolean = false;
                 if (reqArray && ( reqArray.length === 0 || reqArray.includes(propNamePath.split(".").slice(-1)[0]))) {
-                    required = true;
+                    optional = true;
                 }
-                return secureOp(propNamePath, propValue, required);
+                return secureOp(propNamePath, propValue, optional);
             }
             const tempProperties: any = {};
             for (const childPropertyName of Object.keys(prop.properties)) {
