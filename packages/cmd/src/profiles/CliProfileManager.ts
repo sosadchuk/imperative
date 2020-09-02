@@ -377,7 +377,7 @@ export class CliProfileManager extends BasicProfileManager<ICommandProfileTypeCo
 
                 this.log.debug("Performing secure operation on property %s", propNamePath);
                 let optional: boolean = false;
-                if (reqArray && ( reqArray.length === 0 || reqArray.includes(propNamePath.split(".").slice(-1)[0]))) {
+                if (reqArray && ( reqArray.length === 0 || !reqArray.includes(propNamePath.split(".").slice(-1)[0]))) {
                     optional = true;
                 }
                 return secureOp(propNamePath, propValue, optional);
