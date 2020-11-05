@@ -12,6 +12,7 @@
 import * as node_path from "path";
 import * as fs from "fs";
 import * as deepmerge from "deepmerge";
+import * as lodash from "lodash";
 
 import { IConfig } from "./doc/IConfig";
 import { IConfigLayer } from "./doc/IConfigLayer";
@@ -20,6 +21,7 @@ import { IConfigProfile } from "./doc/IConfigProfile";
 import { IConfigVault } from "./doc/IConfigVault";
 import { IConfigOpts } from "./doc/IConfigOpts";
 import { IConfigSecure, IConfigSecureEntry, IConfigSecureProperty } from "./doc/IConfigSecure";
+import { IConfigValueLocationPair, IConfigPropertyEntries } from "./doc/IConfigPropertyEntries";
 
 enum layers {
     project_user = 0,
@@ -136,6 +138,49 @@ export class Config {
         ////////////////////////////////////////////////////////////////////////
         // Complete
         return _;
+    }
+
+    public static findProperty(config: Config, property: string): IConfigPropertyEntries {
+        const orderedLayers = config.layers;
+        const valueLocationPairs: IConfigValueLocationPair[] = [];
+        let response: IConfigPropertyEntries;
+
+        for (const layer of orderedLayers) {
+            let value;
+            try {
+                value = lodash.get(layer.properties, property);
+            } catch (err) {
+                value = undefined;
+            }
+            if (value != null) {
+                valueLocationPairs.push({priority: valueLocationPairs.length+1,path: layer.path, value})
+            }
+        }
+        response = {property, entries: valueLocationPairs}
+        return response;
+    }
+
+    public static findSubProperty<T>(object: any, property: string, require: boolean = false) {
+        let value: T;
+        try {
+            value = lodash.get(object, property)
+        } catch (err) {
+            if (require) {
+                const type = typeof(lodash.get(object, property))
+                const requestedType = typeof(value);
+                throw new ImperativeError({msg: `Expected value of type ${requestedType.toString()}, got ${type.toString()} instead.`});
+            }
+            value = undefined;
+        }
+        return value;
+    }
+
+    public static getDefaultProfileOfType(config: Config, type: string) {
+        const profilePath = this.findSubProperty<string>(config.properties.defaults, type, true);
+        if (!profilePath) { throw new ImperativeError({msg: `No default profile of type ${type} found in any configuration.`})}
+        const profile = this.findSubProperty<any>(config.properties, profilePath);
+        if (!profile) { throw new ImperativeError({msg: `Configuration specifies ${profilePath} as default ${type} profile, but profile was not found in any configuration.`})}
+        return profile;
     }
 
     ////////////////////////////////////////////////////////////////////////////
