@@ -13,6 +13,7 @@ import * as node_path from "path";
 import * as fs from "fs";
 import * as deepmerge from "deepmerge";
 import * as lodash from "lodash";
+import * as lodashdeep from "lodash-deep";
 
 import { IConfig } from "./doc/IConfig";
 import { IConfigLayer } from "./doc/IConfigLayer";
@@ -22,6 +23,7 @@ import { IConfigVault } from "./doc/IConfigVault";
 import { IConfigOpts } from "./doc/IConfigOpts";
 import { IConfigSecure, IConfigSecureEntry, IConfigSecureProperty } from "./doc/IConfigSecure";
 import { IConfigValueLocationPair, IConfigPropertyEntries } from "./doc/IConfigPropertyEntries";
+import { IProfile } from "../../profiles/src/doc/definition/IProfile";
 
 enum layers {
     project_user = 0,
@@ -160,6 +162,15 @@ export class Config {
         return response;
     }
 
+    public static findAllProperties(config: Config): IConfigPropertyEntries[] {
+        const propertyEntries: IConfigPropertyEntries[] = [];
+        const configProperties = config.properties;
+        lodashdeep.deepMapValues(configProperties, (value: any, path: string) => {
+            propertyEntries.push(this.findProperty(config, path));
+        });
+        return propertyEntries;
+    }
+
     public static findSubProperty<T>(object: any, property: string, require: boolean = false) {
         let value: T;
         try {
@@ -175,13 +186,15 @@ export class Config {
         return value;
     }
 
-    public static getDefaultProfileOfType(config: Config, type: string) {
+    public static getDefaultProfileOfType(config: Config, type: string): IProfile {
+        if (!config.properties.defaults) {throw new ImperativeError({msg: `"defaults" was not found in any configuration.`})}
         const profilePath = this.findSubProperty<string>(config.properties.defaults, type, true);
-        if (!profilePath) { throw new ImperativeError({msg: `No default profile of type ${type} found in any configuration.`})}
-        const profile = this.findSubProperty<any>(config.properties, profilePath);
-        if (!profile) { throw new ImperativeError({msg: `Configuration specifies ${profilePath} as default ${type} profile, but profile was not found in any configuration.`})}
+        if (!profilePath) {throw new ImperativeError({msg: `No default profile of type ${type} found in any configuration.`})}
+        const profile: IProfile = this.findSubProperty<any>(config.properties, profilePath + ".properties");
+        if (!profile) {throw new ImperativeError({msg: `Configuration specifies ${profilePath} as default ${type} profile, but profile or profile properties were not found in any configuration.`})}
         return profile;
     }
+
 
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
