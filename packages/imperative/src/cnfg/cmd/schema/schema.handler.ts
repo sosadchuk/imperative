@@ -10,6 +10,7 @@
 */
 
 import { ICommandHandler, IHandlerParameters } from "../../../../../cmd";
+import { Config } from "../../../../../config";
 import { ImperativeConfig } from "../../../../../utilities";
 
 /**
@@ -33,13 +34,15 @@ export default class SchemaHandler implements ICommandHandler {
                 schema: profile.schema
             });
         });
-        params.response.console.log(JSON.stringify(this.schema(entries), null, SchemaHandler.IDENT));
+        const schema = Config.generateSchema(entries);
+        params.response.console.log(JSON.stringify(schema, null, SchemaHandler.IDENT));
     }
 
     /**
      * Dynamically build the config schema
      * @param schemas The schemas specified for this CLI
      */
+    /*
     private schema(schemas?: { type: string, schema: any }[]): any {
         schemas = schemas || [];
         const entries: any[] = [];
@@ -112,4 +115,5 @@ export default class SchemaHandler implements ICommandHandler {
             }
         };
     }
+    */
 }

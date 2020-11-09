@@ -24,6 +24,7 @@ import { IConfigOpts } from "./doc/IConfigOpts";
 import { IConfigSecure, IConfigSecureEntry, IConfigSecureProperty } from "./doc/IConfigSecure";
 import { IConfigValueLocationPair, IConfigPropertyEntries } from "./doc/IConfigPropertyEntries";
 import { IProfile } from "../../profiles/src/doc/definition/IProfile";
+import { ImperativeConfig } from "../../utilities";
 
 enum layers {
     project_user = 0,
@@ -142,6 +143,18 @@ export class Config {
         return _;
     }
 
+    //////////////////////////////////////////
+    // Assistive Config APIs for Properties //
+    //////////////////////////////////////////
+
+    /**
+     * Find the locations where a named property is defined in the configs
+     *
+     * @param {Config} config The config that the user is using
+     * @param {string} property The property to search for
+     *
+     * @returns {IConfigPropertyEntries} The configuration entries that were found for the property
+     */
     public static findProperty(config: Config, property: string): IConfigPropertyEntries {
         const orderedLayers = config.layers;
         const valueLocationPairs: IConfigValueLocationPair[] = [];
@@ -162,6 +175,13 @@ export class Config {
         return response;
     }
 
+    /**
+     * Display all properties in the config and where they come from
+     *
+     * @param {Config} config The config that the user is using
+     *
+     * @returns {IConfigPropertyEntries[]} A list of property entries
+     */
     public static findAllProperties(config: Config): IConfigPropertyEntries[] {
         const propertyEntries: IConfigPropertyEntries[] = [];
         const configProperties = config.properties;
@@ -171,6 +191,17 @@ export class Config {
         return propertyEntries;
     }
 
+    /**
+     * Find a subproperty in a set of properties
+     *
+     * @param {any} object The object to perform the search on
+     * @param {string} property The name of the property to look for
+     * @param {boolean} require Whether or not the property needs to be found
+     *
+     * @returns {any} object being searched for
+     *
+     * @throws {ImperativeError}
+     */
     public static findSubProperty<T>(object: any, property: string, require: boolean = false) {
         let value: T;
         try {
@@ -186,6 +217,20 @@ export class Config {
         return value;
     }
 
+    ////////////////////////////////////////
+    // Assistive Config APIs for Profiles //
+    ////////////////////////////////////////
+
+    /**
+     * Given a profile type and config, get the completed profile
+     *
+     * @param {Config} config The config that the user is using
+     * @param {string} type The name of the profile type to get
+     *
+     * @returns {IProfile} The rendered profile.
+     *
+     * @throws {ImperativeError}
+     */
     public static getDefaultProfileOfType(config: Config, type: string): IProfile {
         if (!config.properties.defaults) {throw new ImperativeError({msg: `"defaults" was not found in any configuration.`})}
         const profilePath = this.findSubProperty<string>(config.properties.defaults, type, true);
@@ -195,6 +240,138 @@ export class Config {
         return profile;
     }
 
+    ///////////////////////////////////////
+    // Assistive Config APIs for Schemas //
+    ///////////////////////////////////////
+
+    /**
+     * Get the schema defined on the config
+     *
+     * @param {Config} config The config that the user is using
+     *
+     * @returns {JSON} The JSON Schema
+     *
+     * @throws {ImperativeError}
+     */
+    public static getSchema(config: Config): JSON {
+        let schema: JSON;
+        let schemaString: string;
+        let schemaLocation: string;
+        const schemaPropertyRaw = this.findProperty(config, "$schema");
+
+        if (schemaPropertyRaw) {
+            if (schemaPropertyRaw.entries.length > 0) {
+                if (schemaPropertyRaw.entries[0].value) {
+                    if (typeof schemaPropertyRaw.entries[0].value === "string") {
+                        schemaLocation = schemaPropertyRaw.entries[0].path;
+                        schemaString = schemaPropertyRaw.entries[0].value;
+                    } else {throw new ImperativeError({msg: "Value of the $schema property in configuration is not of type string"});}
+                } else {throw new ImperativeError({msg: "Value of the $schema property in configuration is null or undefined"});}
+            } else {throw new ImperativeError({msg: "$schema property does not exist on any configuration file"});}
+        } else {throw new ImperativeError({msg: "Internal API Error: getSchema API failed to get an object from findProperty"});}
+
+        if (schemaString.toLowerCase().startsWith("http://") || schemaString.toLowerCase().startsWith("https://")) {
+            // Remote file
+            const fetch = require("node-fetch");
+            const settings = { method: "Get" }
+            fetch(schemaString, settings).then((resp: { json: () => any; }) => resp.json()).then((json: JSON) => {schema = json});
+
+        } else {
+            // Local file
+            const abspath = schemaString;
+            const relPath = node_path.join(schemaLocation, schemaString);
+
+        }
+        return schema;
+    }
+
+    /**
+     * Dynamically build the config schema
+     *
+     * @param schemas The schemas specified for this CLI
+     *
+     * @returns {object} The generated schema object
+     */
+    public static generateSchema(schemas?: { type: string, schema: any }[]): object {
+        schemas = schemas || [];
+        if (schemas === []) {
+            ImperativeConfig.instance.loadedConfig.profiles.forEach((profile) => {
+                entries.push({
+                    type: profile.type,
+                    schema: profile.schema
+                });
+            });
+        }
+        const entries: any[] = [];
+        schemas.forEach((schema: { type: string, schema: any }) => {
+            // Remove any non-JSON-schema properties and translate anything useful
+            for (const [_, v] of Object.entries(schema.schema.properties)) {
+                if ((v as any).optionDefinition != null) {
+                    if ((v as any).optionDefinition.description)
+                        (v as any).description = (v as any).optionDefinition.description;
+                }
+                delete (v as any).secure
+                delete (v as any).optionDefinition;
+            }
+
+            entries.push({
+                if: { properties: { type: { const: schema.type } } },
+                then: { properties: { properties: schema.schema } },
+            });
+        });
+        return {
+            $schema: "https://json-schema.org/draft/2019-09/schema#",
+            type: "object",
+            description: "config",
+            properties: {
+                profiles: {
+                    type: "object",
+                    description: "named profiles config",
+                    patternProperties: {
+                        "^\\S*$": {
+                            type: "object",
+                            description: "a profile",
+                            properties: {
+                                type: {
+                                    description: "the profile type",
+                                    type: "string"
+                                },
+                                properties: {
+                                    description: "the profile properties",
+                                    type: "object"
+                                },
+                                profiles: {
+                                    description: "additional sub-profiles",
+                                    type: "object",
+                                    $ref: "#/properties/profiles"
+                                }
+                            },
+                            allOf: entries
+                        }
+                    }
+
+                },
+                defaults: {
+                    type: "object",
+                    description: "default profiles config",
+                    patternProperties: {
+                        "^\\S*$": {
+                            type: "string",
+                            description: "the type"
+                        }
+                    }
+                },
+                secure: {
+                    type: "array",
+                    description: "secure properties",
+                    items: {
+                        type: "string",
+                        description: "path to a property"
+                    }
+                }
+            }
+        };
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
