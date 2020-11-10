@@ -249,12 +249,12 @@ export class Config {
      *
      * @param {Config} config The config that the user is using
      *
-     * @returns {JSON} The JSON Schema
+     * @returns {object} The JSON Schema
      *
      * @throws {ImperativeError}
      */
-    public static getSchema(config: Config): JSON {
-        let schema: JSON;
+    public static async getSchema(config: Config): Promise<object> {
+        let schema: object;
         let schemaString: string;
         let schemaLocation: string;
         const schemaPropertyRaw = this.findProperty(config, "$schema");
@@ -272,15 +272,34 @@ export class Config {
 
         if (schemaString.toLowerCase().startsWith("http://") || schemaString.toLowerCase().startsWith("https://")) {
             // Remote file
-            const fetch = require("node-fetch");
-            const settings = { method: "Get" }
-            fetch(schemaString, settings).then((resp: { json: () => any; }) => resp.json()).then((json: JSON) => {schema = json});
-
+            const fetch = require('node-fetch');
+            try {
+                const response = await fetch(schemaString);
+                const body = await response.json();
+                schema = body;
+            } catch (err) {
+                throw new ImperativeError({msg: `Failed to get JSON from '${schemaString}': ${err.message}`});
+            }
         } else {
             // Local file
-            const abspath = schemaString;
-            const relPath = node_path.join(schemaLocation, schemaString);
-
+            let path: string;
+            let contents: any;
+            if (node_path.isAbsolute(schemaString)) {
+                path = schemaString;
+            } else {
+                path = node_path.join(node_path.dirname(schemaLocation), schemaString);
+            }
+            try {
+                contents = fs.readFileSync(path).toString();
+            } catch (err) {
+                throw new ImperativeError({msg: `Failed to properly read the file ${path}. Please check the file exists.`});
+            }
+            try {
+                contents = JSON.parse(contents);
+            } catch (err) {
+                throw new ImperativeError({msg: `Failed to parse the contents of the file ${path} to JSON.`});
+            }
+            schema = contents;
         }
         return schema;
     }
