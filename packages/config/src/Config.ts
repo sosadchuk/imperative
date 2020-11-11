@@ -231,11 +231,31 @@ export class Config {
      *
      * @throws {ImperativeError}
      */
+    /*
     public static getDefaultProfileOfType(config: Config, type: string): IProfile {
         if (!config.properties.defaults) {throw new ImperativeError({msg: `"defaults" was not found in any configuration.`})}
         const profilePath = this.findSubProperty<string>(config.properties.defaults, type, true);
         if (!profilePath) {throw new ImperativeError({msg: `No default profile of type ${type} found in any configuration.`})}
         const profile: IProfile = this.findSubProperty<any>(config.properties, profilePath + ".properties");
+        if (!profile) {throw new ImperativeError({msg: `Configuration specifies ${profilePath} as default ${type} profile, but profile or profile properties were not found in any configuration.`})}
+        return profile;
+    }
+    */
+
+    public static getDefaultProfileOfType(config: Config, type: string): IProfile {
+        if (!config.properties.defaults) {throw new ImperativeError({msg: `"defaults" was not found in any configuration.`})}
+        const profilePath = this.findSubProperty<string>(config.properties.defaults, type, true);
+        if (!profilePath) {throw new ImperativeError({msg: `No default profile of type ${type} found in any configuration.`})}
+        // Handle profiles in profiles
+        const profileHierarchy: string[] = profilePath.split('.').filter(s => s);
+        const profile: IProfile = {};
+        let buildObject: string;
+        for (const profileLayer of profileHierarchy) {
+            if (buildObject != null) {buildObject = buildObject + ".";}
+            const tempProps: IProfile = this.findSubProperty<any>(config.properties, profileLayer + ".properties");
+            for (const key in tempProps) {if (key != null && tempProps[key] != null) {profile[key] = tempProps[key];}}
+            buildObject = profileLayer + ".profiles"
+        }
         if (!profile) {throw new ImperativeError({msg: `Configuration specifies ${profilePath} as default ${type} profile, but profile or profile properties were not found in any configuration.`})}
         return profile;
     }
@@ -284,6 +304,10 @@ export class Config {
             // Local file
             let path: string;
             let contents: any;
+            if (schemaString.toLowerCase().startsWith("file://")) {
+                // Remove file URI if present
+                schemaString = schemaString.replace('file://', '');
+            }
             if (node_path.isAbsolute(schemaString)) {
                 path = schemaString;
             } else {
