@@ -14,3 +14,4 @@ export * from "./src/DefaultCredentialManager";
 export * from "./src/abstract/AbstractCredentialManager";
 export * from "./src/doc/ICredentialManagerConstructor";
 export * from "./src/errors/BadCredentialManagerError";
+export * from "./src/errors/KeytarLoadError";
