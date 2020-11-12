@@ -53,6 +53,8 @@ export default class InitHandler implements ICommandHandler {
 
         // Write the active created/updated config layer
         config.api.layers.write();
+
+        params.response.console.log(`Saved config file to: ${layer.path}`);
     }
 
     /**

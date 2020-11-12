@@ -17,6 +17,7 @@
 
 import { AbstractCredentialManager, SecureCredential } from "./abstract/AbstractCredentialManager";
 import { ImperativeError } from "../../error";
+import { KeytarLoadError } from "./errors/KeytarLoadError";
 
 // tslint:disable-next-line:no-implicit-dependencies
 import * as keytar from "keytar"; // Used for typing purposes only
@@ -65,7 +66,7 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
      *
      * @private
      */
-    private loadError: ImperativeError;
+    private loadError: KeytarLoadError;
 
     /**
      * Pass-through to the superclass constructor.
@@ -96,10 +97,7 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
             // tslint:disable-next-line:no-implicit-dependencies
             this.keytar = await import("keytar");
         } catch (error) {
-            this.loadError = new ImperativeError({
-                msg: "Keytar not Installed",
-                causeErrors: error
-            });
+            this.loadError = new KeytarLoadError(error);
         }
     }
 
@@ -111,7 +109,7 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
      *
      * @returns {Promise<void>} A promise that the function has completed.
      *
-     * @throws {@link ImperativeError} if keytar is not defined.
+     * @throws {@link KeytarLoadError} if keytar is not defined.
      * @throws {@link ImperativeError} when keytar.deletePassword returns false.
      */
     protected async deleteCredentials(account: string): Promise<void> {
@@ -132,7 +130,7 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
      * @param {boolean} optional Set to true if failure to find credentials should be ignored
      * @returns {Promise<SecureCredential>} A promise containing the credentials stored in keytar.
      *
-     * @throws {@link ImperativeError} if keytar is not defined.
+     * @throws {@link KeytarLoadError} if keytar is not defined.
      * @throws {@link ImperativeError} when keytar.getPassword returns null or undefined.
      */
     protected async loadCredentials(account: string, optional?: boolean): Promise<SecureCredential> {
@@ -158,7 +156,7 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
      *
      * @returns {Promise<void>} A promise that the function has completed.
      *
-     * @throws {@link ImperativeError} if keytar is not defined.
+     * @throws {@link KeytarLoadError} if keytar is not defined.
      */
     protected async saveCredentials(account: string, credentials: SecureCredential): Promise<void> {
         this.checkForKeytar();
