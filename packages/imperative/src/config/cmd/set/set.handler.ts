@@ -10,24 +10,16 @@
 */
 
 import { ICommandHandler, IHandlerParameters } from "../../../../../cmd";
-import { Logger } from "../../../../../logger/";
 import { ImperativeError } from "../../../../../error";
-import { AppSettings } from "../../../../../settings/src/AppSettings";
+import { AppSettings } from "../../../../../settings";
 
 
 /**
- * The list command group handler for cli configuration settings.
+ * The set command group handler for cli configuration settings.
  *
  */
-export default class ListHandler implements ICommandHandler {
+export default class SetHandler implements ICommandHandler {
 
-    /**
-     * A logger for this class
-     *
-     * @private
-     * @type {Logger}
-     */
-    private log: Logger = Logger.getImperativeLogger();
 
     /**
      * Process the command and input.
@@ -37,11 +29,7 @@ export default class ListHandler implements ICommandHandler {
      * @throws {ImperativeError}
      */
     public async process(params: IHandlerParameters): Promise<void> {
-        const {values} = params.arguments;
-        const overrides = AppSettings.instance.getNamespace("overrides");
-
-        Object.keys(overrides)
-            .map((key) =>  values ? `${key} = ${overrides[key]}` : key)
-            .forEach(params.response.console.log);
+        const {configName, configValue} = params.arguments;
+        AppSettings.instance.set("overrides", configName, configValue);
     }
 }

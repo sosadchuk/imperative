@@ -9,8 +9,9 @@
 *
 */
 
-export * from "./src/CredentialManagerFactory";
-export * from "./src/DefaultCredentialManager";
-export * from "./src/abstract/AbstractCredentialManager";
-export * from "./src/doc/ICredentialManagerConstructor";
-export * from "./src/errors/BadCredentialManagerError";
+import { ISettingsFile } from "../doc/ISettingsFile";
+
+export interface ISettingsFilePersistence {
+    read(): ISettingsFile;
+    write(settings: ISettingsFile): void;
+}

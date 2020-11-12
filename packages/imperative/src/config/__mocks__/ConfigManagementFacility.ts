@@ -9,8 +9,9 @@
 *
 */
 
-export * from "./src/CredentialManagerFactory";
-export * from "./src/DefaultCredentialManager";
-export * from "./src/abstract/AbstractCredentialManager";
-export * from "./src/doc/ICredentialManagerConstructor";
-export * from "./src/errors/BadCredentialManagerError";
+const ConfigManagementFacility: any =
+    (jest.genMockFromModule("../ConfigManagementFacility") as any).ConfigManagementFacility;
+
+ConfigManagementFacility.instance = new ConfigManagementFacility();
+
+exports.ConfigManagementFacility = ConfigManagementFacility;

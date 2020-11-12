@@ -48,18 +48,22 @@ import {
 import { ProfileUtils, IProfileTypeConfiguration } from "../../profiles";
 import { CompleteProfilesGroupBuilder } from "./profiles/builders/CompleteProfilesGroupBuilder";
 import { ImperativeHelpGeneratorFactory } from "./help/ImperativeHelpGeneratorFactory";
+import { OverridesLoader } from "./OverridesLoader";
 import { ImperativeProfileManagerFactory } from "./profiles/ImperativeProfileManagerFactory";
 import { DefinitionTreeResolver } from "./DefinitionTreeResolver";
 import { EnvironmentalVariableSettings } from "./env/EnvironmentalVariableSettings";
+import { AppSettings } from "../../settings";
 import { dirname, join } from "path";
 
 import { Console } from "../../console";
+import { ISettingsFile } from "../../settings/src/doc/ISettingsFile";
 import { IYargsContext } from "./doc/IYargsContext";
 import { ICommandProfileAuthConfig } from "../../cmd/src/doc/profiles/definition/ICommandProfileAuthConfig";
 import { ImperativeExpect } from "../../expect";
 import { CompleteAuthGroupBuilder } from "./auth/builders/CompleteAuthGroupBuilder";
 import { Config, IConfigOpts } from "../../config";
 import { CredentialManagerFactory } from "../../security";
+import { CnfgManagementFacility } from "./cnfg/CnfgManagementFacility";
 
 // Bootstrap the performance tools
 if (PerfTiming.isEnabled) {
@@ -163,6 +167,9 @@ export class Imperative {
                 ConfigurationValidator.validate(config);
                 ImperativeConfig.instance.loadedConfig = config;
 
+                // Initialize our settings file
+                this.initAppSettings();
+
                 /**
                  * Get the command name from the package bin.
                  * If no command name exists, we will instead use the file name invoked
@@ -189,6 +196,15 @@ export class Imperative {
                 // If plugins are allowed, enable core plugins commands
                 if (config.allowPlugins) {
                     PluginManagementFacility.instance.init();
+
+                    // load the configuration of every installed plugin for later processing
+                    PluginManagementFacility.instance.loadAllPluginCfgProps();
+
+                    // Override the config object with things loaded from plugins
+                    Object.assign(
+                        ImperativeConfig.instance.loadedConfig.overrides,
+                        PluginManagementFacility.instance.pluginOverrides
+                    );
                 }
 
                 /**
@@ -202,6 +218,13 @@ export class Imperative {
                 this.initLogging();
 
                 /**
+                 * Now we should apply any overrides to default Imperative functionality. This is where CLI
+                 * developers are able to really start customizing Imperative and how it operates internally.
+                 */
+                await OverridesLoader.load(ImperativeConfig.instance.loadedConfig,
+                    ImperativeConfig.instance.callerPackageJson);
+
+                /**
                  * After the plugins and secure credentials are loaded, rebuild the configuration with the
                  * secure values
                  */
@@ -210,7 +233,7 @@ export class Imperative {
                     opts = {
                         vault: {
                             load: ((key: string): Promise<string> => {
-                                return CredentialManagerFactory.manager.load(key, true);
+                                return CredentialManagerFactory.manager.load(key, true)
                             }),
                             save: ((key: string, value: any): Promise<void> => {
                                 return CredentialManagerFactory.manager.save(key, value);
@@ -220,6 +243,9 @@ export class Imperative {
                     };
                     ImperativeConfig.instance.config = await Config.load(ImperativeConfig.instance.rootCommandName, opts);
                 }
+
+                // Init config group
+                CnfgManagementFacility.instance.init();
 
                 /**
                  * Build API object
@@ -428,6 +454,26 @@ export class Imperative {
      */
     private static get log(): Logger {
         return Logger.getImperativeLogger();
+    }
+
+    /**
+     * Load the correct {@link AppSettings} instance from values located in the
+     * cli home folder.
+     */
+    private static initAppSettings() {
+        const cliSettingsRoot = join(ImperativeConfig.instance.cliHome, "settings");
+        const cliSettingsFile = join(cliSettingsRoot, "imperative.json");
+
+        const defaultSettings: ISettingsFile = {
+            overrides: {
+                CredentialManager: false
+            }
+        };
+
+        AppSettings.initialize(
+            cliSettingsFile,
+            defaultSettings,
+        );
     }
 
     /**

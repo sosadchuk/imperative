@@ -16,10 +16,10 @@ import { AppSettings } from "../../../../../settings/src/AppSettings";
 
 
 /**
- * The list command group handler for cli configuration settings.
+ * The get command group handler for cli configuration settings.
  *
  */
-export default class ListHandler implements ICommandHandler {
+export default class GetHandler implements ICommandHandler {
 
     /**
      * A logger for this class
@@ -37,11 +37,12 @@ export default class ListHandler implements ICommandHandler {
      * @throws {ImperativeError}
      */
     public async process(params: IHandlerParameters): Promise<void> {
-        const {values} = params.arguments;
-        const overrides = AppSettings.instance.getNamespace("overrides");
-
-        Object.keys(overrides)
-            .map((key) =>  values ? `${key} = ${overrides[key]}` : key)
-            .forEach(params.response.console.log);
+        const {configName} = params.arguments;
+        const value = AppSettings.instance.get("overrides", configName);
+        if (typeof value === "undefined") {
+            params.response.console.error(`Config ${configName} does not exist.`);
+        }else{
+            params.response.console.log(value.toString());
+        }
     }
 }
