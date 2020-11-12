@@ -36,9 +36,14 @@ export default class GetHandler implements ICommandHandler {
         else if (params.arguments.property) {response = Config.findProperty(config, params.arguments.property);}
         else {throw new ImperativeError({msg:"Missing property or --all flag for configuration search."});}
 
-        /*
         // Get Default Profile of Type Testing
-        const response: IProfile = Config.getDefaultProfileOfType(config, property);
+        /*
+        const zosmf: string = Config.getDefaultProfileName(config, "zosmf");
+        const base: string = Config.getDefaultProfileName(config, "base");
+        const zosmfProfile: IProfile = Config.getProfile(config, zosmf);
+        const baseProfile: IProfile = Config.getProfile(config, base);
+        const combined: IProfile = Config.mergeProfiles(baseProfile, zosmfProfile);
+        response = combined;
         */
 
         params.response.data.setObj(response);

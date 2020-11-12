@@ -206,7 +206,13 @@ export class Config {
         let value: T;
         try {
             value = lodash.get(object, property)
+            if (value == null && require) {
+                throw new ImperativeError({msg: `Property ${property} was not defined on the configuration.`});
+            }
         } catch (err) {
+            if (err instanceof ImperativeError) {
+                throw err;
+            }
             if (require) {
                 const type = typeof(lodash.get(object, property))
                 const requestedType = typeof(value);
@@ -222,41 +228,74 @@ export class Config {
     ////////////////////////////////////////
 
     /**
-     * Given a profile type and config, get the completed profile
+     * Given two profiles, combine their properties
+     * @param {IProfile} baseProfile The profile whose values have less priority
+     * @param {IProfile} mergeProfile The profile whose values have more priority
+     *
+     * @returns {IProfile} The combined profile
+     *
+     * @throws {ImperativeError}
+     */
+
+    public static mergeProfiles(baseProfile: IProfile, mergeProfile: IProfile): IProfile {
+        const combinedProfile: IProfile = baseProfile || {};
+        for (const key in mergeProfile) {if (mergeProfile[key] != null) {combinedProfile[key] = mergeProfile[key];}}
+        return combinedProfile;
+    }
+
+    /**
+     * Given a profile type and config, get the name of the default profile
+     * @param {Config} config The config that the user is using
+     * @param {string} type The profile type to get
+     *
+     * @returns {string} The name of the default profile
+     *
+     * @throws {ImperativeError}
+     */
+
+    public static getDefaultProfileName(config: Config, type: string): string {
+        if (!config.properties.defaults) {throw new ImperativeError({msg: `"defaults" was not found in any configuration.`});}
+        const profilePath: string = this.findSubProperty<string>(config.properties.defaults, type);
+        if (!profilePath) {throw new ImperativeError({msg: `No default profile of type '${type}' found in any configuration.`});}
+        return profilePath;
+    }
+
+    /**
+     * Given a profile name and config, get the completed profile
      *
      * @param {Config} config The config that the user is using
-     * @param {string} type The name of the profile type to get
+     * @param {string} name The name of the profile to get
      *
      * @returns {IProfile} The rendered profile.
      *
      * @throws {ImperativeError}
      */
-    /*
-    public static getDefaultProfileOfType(config: Config, type: string): IProfile {
-        if (!config.properties.defaults) {throw new ImperativeError({msg: `"defaults" was not found in any configuration.`})}
-        const profilePath = this.findSubProperty<string>(config.properties.defaults, type, true);
-        if (!profilePath) {throw new ImperativeError({msg: `No default profile of type ${type} found in any configuration.`})}
-        const profile: IProfile = this.findSubProperty<any>(config.properties, profilePath + ".properties");
-        if (!profile) {throw new ImperativeError({msg: `Configuration specifies ${profilePath} as default ${type} profile, but profile or profile properties were not found in any configuration.`})}
-        return profile;
-    }
-    */
 
-    public static getDefaultProfileOfType(config: Config, type: string): IProfile {
-        if (!config.properties.defaults) {throw new ImperativeError({msg: `"defaults" was not found in any configuration.`})}
-        const profilePath = this.findSubProperty<string>(config.properties.defaults, type, true);
-        if (!profilePath) {throw new ImperativeError({msg: `No default profile of type ${type} found in any configuration.`})}
+    public static getProfile(config: Config, name: string): IProfile {
+        if (!name) {throw new ImperativeError({msg: "No profile name supplied."});}
         // Handle profiles in profiles
-        const profileHierarchy: string[] = profilePath.split('.').filter(s => s);
+        const profileHierarchy: string[] = name.split('.').filter(s => s);
         const profile: IProfile = {};
         let buildObject: string;
+        let buildProfile: string;
         for (const profileLayer of profileHierarchy) {
-            if (buildObject != null) {buildObject = buildObject + ".";}
-            const tempProps: IProfile = this.findSubProperty<any>(config.properties, profileLayer + ".properties");
+            if (buildObject == null) {buildObject = "profiles." + profileLayer;}
+            else {buildObject = buildObject + ".profiles." + profileLayer;}
+
+            if (buildProfile == null) {buildProfile = profileLayer;}
+            else {buildProfile = buildProfile + "." + profileLayer;}
+
+            let tempProps: IProfile;
+            try {
+                tempProps = this.findSubProperty<any>(config.properties, buildObject + ".properties", true);
+            } catch (err) {
+                throw new ImperativeError({msg: `Failed to get properties for profile '${buildProfile}'. Verify it exists on the configuration.`});
+            }
             for (const key in tempProps) {if (key != null && tempProps[key] != null) {profile[key] = tempProps[key];}}
-            buildObject = profileLayer + ".profiles"
         }
-        if (!profile) {throw new ImperativeError({msg: `Configuration specifies ${profilePath} as default ${type} profile, but profile or profile properties were not found in any configuration.`})}
+        if (!profile) {
+            throw new ImperativeError({msg: `The profile ${name} was found, but did not contain any properties in any configuration.`});
+        }
         return profile;
     }
 
