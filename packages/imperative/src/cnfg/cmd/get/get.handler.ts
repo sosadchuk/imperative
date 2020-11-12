@@ -48,7 +48,7 @@ export default class GetHandler implements ICommandHandler {
         response = combined;
         */
 
-        response = Config.getProfile(config, Config.getDefaultProfileName(config, "zosmf"));
+        response = await Config.getProfile(config, Config.getDefaultProfileName(config, "zosmf"));
 
         params.response.data.setObj(response);
         params.response.format.output({

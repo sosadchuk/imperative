@@ -18,6 +18,7 @@ import { schemaDefinition } from "./cmd/schema/schema.definition";
 import { profilesDefinition } from "./cmd/profiles/profiles.definition";
 import { secureDefinition } from "./cmd/secure/secure.definition";
 import { setSecureDefinition } from "./cmd/set-secure/set-secure.definition";
+import { getDefinition } from "./cmd/get/get.definition";
 
 export class CnfgManagementFacility {
     private static mInstance: CnfgManagementFacility;
@@ -67,6 +68,7 @@ export class CnfgManagementFacility {
             summary: "Manage JSON project and global configuration",
             description: "Manage JSON project and global configuration",
             children: [
+                getDefinition,
                 listDefinition,
                 secureDefinition,
                 setSecureDefinition,

@@ -274,10 +274,8 @@ export class Config {
 
     public static async getProfile(config: Config, name: string): Promise<IProfile> {
         if (!name) {throw new ImperativeError({msg: "No profile name supplied."});}
-        // Handle profiles in profiles
         const profileHierarchy: string[] = name.split('.').filter(s => s);
         const profile: IProfile = {};
-        const secureFields: string[] = config.properties.secure;
         let buildObject: string;
         let buildProfile: string;
         for (const profileLayer of profileHierarchy) {
@@ -286,14 +284,6 @@ export class Config {
             else {buildObject = buildObject + ".profiles." + profileLayer;}
             if (buildProfile == null) {buildProfile = profileLayer;}
             else {buildProfile = buildProfile + "." + profileLayer;}
-            if (secureFields) {
-                for (const field in secureFields) {
-                    if (field.substring(0, field.lastIndexOf('.')) === buildObject + ".properties") {
-                        const key = field.substring(field.lastIndexOf('.') + 1, field.length + 1);
-                        tempProps[key] = await CredentialManagerFactory.manager.load(field, false);
-                    }
-                }
-            }
             try {
                 tempProps = this.findSubProperty<any>(config.properties, buildObject + ".properties", true);
             } catch (err) {
