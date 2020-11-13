@@ -25,7 +25,7 @@ import { IConfigSecure, IConfigSecureEntry, IConfigSecureProperty } from "./doc/
 import { IConfigValueLocationPair, IConfigPropertyEntries } from "./doc/IConfigPropertyEntries";
 import { IProfile } from "../../profiles/src/doc/definition/IProfile";
 import { ImperativeConfig } from "../../utilities";
-import { CredentialManagerFactory } from "../../security";
+import { URL, pathToFileURL } from "url";
 
 enum layers {
     project_user = 0,
@@ -219,6 +219,15 @@ export class Config {
             if (value == null && require) {
                 throw new ImperativeError({msg: `Property ${property} was not defined on the configuration.`});
             }
+
+            // Investigate this more
+            /*
+            if (value instanceof T && require) {
+                const type = typeof(lodash.get(object, property))
+                const requestedType = typeof(value);
+                throw new ImperativeError({msg: `Expected value of type ${requestedType.toString()}, got ${type.toString()} instead.`});
+            }
+            */
         } catch (err) {
             if (err instanceof ImperativeError) {
                 throw err;
@@ -239,7 +248,7 @@ export class Config {
 
     /**
      * Given two profiles, combine their properties
-     * @param {IProfile} baseProfile The profile whose values have less priority
+     * @param {IProfile} profile The profile whose values have less priority
      * @param {IProfile} mergeProfile The profile whose values have more priority
      *
      * @returns {IProfile} The combined profile
@@ -247,8 +256,8 @@ export class Config {
      * @throws {ImperativeError}
      */
 
-    public static mergeProfiles(baseProfile: IProfile, mergeProfile: IProfile): IProfile {
-        const combinedProfile: IProfile = baseProfile || {};
+    public static mergeProfiles(profile: IProfile, mergeProfile: IProfile): IProfile {
+        const combinedProfile: IProfile = profile || {};
         for (const key in mergeProfile) {if (mergeProfile[key] != null) {combinedProfile[key] = mergeProfile[key];}}
         return combinedProfile;
     }
@@ -294,15 +303,15 @@ export class Config {
             if (buildProfile == null) {buildProfile = profileLayer;}
             else {buildProfile = buildProfile + "." + profileLayer;}
             try {
-                tempProps = this.findSubProperty<any>(config.properties, buildObject + ".properties", true);
+                tempProps = this.findSubProperty<any>(config.properties, buildObject + ".properties");
             } catch (err) {
                 throw new ImperativeError({msg: `Failed to get properties for profile '${buildProfile}'. Verify it exists on the configuration.`});
             }
             for (const key in tempProps) {if (key != null && tempProps[key] != null) {profile[key] = tempProps[key];}}
         }
-        if (!profile) {
-            throw new ImperativeError({msg: `The profile ${name} was found, but did not contain any properties in any configuration.`});
-        }
+        // if (!profile) {
+        //     throw new ImperativeError({msg: `The profile ${name} was found, but did not contain any properties in any configuration.`});
+        // }
         return profile;
     }
 
@@ -331,34 +340,27 @@ export class Config {
                     if (typeof schemaPropertyRaw.entries[0].value === "string") {
                         schemaLocation = schemaPropertyRaw.entries[0].path;
                         schemaString = schemaPropertyRaw.entries[0].value;
-                    } else {throw new ImperativeError({msg: "Value of the $schema property in configuration is not of type string"});}
+                    } else {throw new ImperativeError({msg: "Value of the $schema property in configuration is not of type 'string'"});}
                 } else {throw new ImperativeError({msg: "Value of the $schema property in configuration is null or undefined"});}
             } else {throw new ImperativeError({msg: "$schema property does not exist on any configuration file"});}
         } else {throw new ImperativeError({msg: "Internal API Error: getSchema API failed to get an object from findProperty"});}
 
-        if (schemaString.toLowerCase().startsWith("http://") || schemaString.toLowerCase().startsWith("https://")) {
+        const url = new URL(schemaString, pathToFileURL(schemaLocation));
+
+        if (url.protocol !== "file:") {
             // Remote file
             const fetch = require('node-fetch');
             try {
-                const response = await fetch(schemaString);
+                const response = await fetch(url.href);
                 const body = await response.json();
                 schema = body;
             } catch (err) {
-                throw new ImperativeError({msg: `Failed to get JSON from '${schemaString}': ${err.message}`});
+                throw new ImperativeError({msg: `Failed to get JSON from '${url.href}': ${err.message}`});
             }
         } else {
             // Local file
-            let path: string;
+            const path: string = url.pathname;
             let contents: any;
-            if (schemaString.toLowerCase().startsWith("file://")) {
-                // Remove file URI if present
-                schemaString = schemaString.replace('file://', '');
-            }
-            if (node_path.isAbsolute(schemaString)) {
-                path = schemaString;
-            } else {
-                path = node_path.join(node_path.dirname(schemaLocation), schemaString);
-            }
             try {
                 contents = fs.readFileSync(path).toString();
             } catch (err) {
