@@ -32,11 +32,10 @@ export default class GetHandler implements ICommandHandler {
         const config = ImperativeConfig.instance.config;
         let response;
 
-        /*
         if (params.arguments.all) {response = Config.findAllProperties(config);}
         else if (params.arguments.property) {response = Config.findProperty(config, params.arguments.property);}
         else {throw new ImperativeError({msg:"Missing property or --all flag for configuration search."});}
-        */
+
 
         // Get Default Profile of Type Testing
         /*
@@ -48,8 +47,7 @@ export default class GetHandler implements ICommandHandler {
         response = combined;
         */
 
-        response = await Config.getProfile(config, Config.getDefaultProfileName(config, "zosmf"));
-
+        // response = await Config.getProfile(config, Config.getDefaultProfileName(config, "zosmf"));
         params.response.data.setObj(response);
         params.response.format.output({
             format: "object",

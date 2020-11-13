@@ -186,9 +186,18 @@ export class Config {
     public static findAllProperties(config: Config): IConfigPropertyEntries[] {
         const propertyEntries: IConfigPropertyEntries[] = [];
         const configProperties = config.properties;
+
+        // Because schemas are not on the properties
+        const schemas = this.findProperty(config, "$schema");
+
+        if (schemas) {
+            propertyEntries.push(schemas);
+        }
+
         lodashdeep.deepMapValues(configProperties, (value: any, path: string) => {
             propertyEntries.push(this.findProperty(config, path));
         });
+
         return propertyEntries;
     }
 
