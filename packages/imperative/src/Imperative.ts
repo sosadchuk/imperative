@@ -238,22 +238,21 @@ export class Imperative {
                  */
                 let opts: IConfigOpts = null;
                 if (CredentialManagerFactory.initialized) {
-                    try {
-                        opts = {
-                            vault: {
-                                load: ((key: string): Promise<string> => {
-                                    return CredentialManagerFactory.manager.load(key, true)
-                                }),
-                                save: ((key: string, value: any): Promise<void> => {
-                                    return CredentialManagerFactory.manager.save(key, value);
-                                }),
-                                name: CredentialManagerFactory.manager.name
-                            }
-                        };
-                        opts.vault.load("test");
-                    } catch (err) {
+                    opts = {
+                        vault: {
+                            load: ((key: string): Promise<string> => {
+                                return CredentialManagerFactory.manager.load(key, true)
+                            }),
+                            save: ((key: string, value: any): Promise<void> => {
+                                return CredentialManagerFactory.manager.save(key, value);
+                            }),
+                            name: CredentialManagerFactory.manager.name
+                        }
+                    };
+                    opts.vault.load("test").catch(error => {
                         opts = {};
-                    }
+                        this.log.warn(error.message);
+                    });
                     ImperativeConfig.instance.config = await Config.load(ImperativeConfig.instance.rootCommandName, opts);
                 }
 

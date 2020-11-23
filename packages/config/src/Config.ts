@@ -20,6 +20,9 @@ import { IConfigProfile } from "./doc/IConfigProfile";
 import { IConfigVault } from "./doc/IConfigVault";
 import { IConfigOpts } from "./doc/IConfigOpts";
 import { IConfigSecure, IConfigSecureEntry, IConfigSecureProperty } from "./doc/IConfigSecure";
+import { Logger } from "../../logger";
+
+const logger = Logger.getImperativeLogger()
 
 enum layers {
     project_user = 0,
@@ -424,11 +427,10 @@ export class Config {
         let s: string;
 
         // ISSUE: Secure array is empty with this implemented during zdev config list
-        try {
-            s = await this._vault.load(Config.SECURE_ACCT);
-        } catch (err) {
+        s = await this._vault.load(Config.SECURE_ACCT).catch(error => {
             s = null;
-        }
+            logger.warn(error.message);
+        });
         if (s == null) return;
         this._secure = JSON.parse(s);
 
