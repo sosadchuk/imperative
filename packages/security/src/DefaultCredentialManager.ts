@@ -149,7 +149,7 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
    * @throws {@link ImperativeError} if keytar is not defined.
    */
   protected async deleteCredentials(account: string): Promise<void> {
-    this.checkForKeytar();
+    await this.checkForKeytar();
     await this.deleteCredentialsHelper(account);
   }
 
@@ -166,7 +166,7 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
    * @throws {@link ImperativeError} when keytar.getPassword returns null or undefined.
    */
   protected async loadCredentials(account: string, optional?: boolean): Promise<SecureCredential> {
-    this.checkForKeytar();
+    await this.checkForKeytar();
     // Helper function to handle all breaking changes
     const loadHelper = async (service: string) => {
       let secureValue: string = await this.keytar.getPassword(service, account);
@@ -242,7 +242,7 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
    * @throws {@link ImperativeError} if keytar is not defined.
    */
   protected async saveCredentials(account: string, credentials: SecureCredential): Promise<void> {
-    this.checkForKeytar();
+    await this.checkForKeytar();
     await this.deleteCredentialsHelper(account, true);
     await this.keytar.setPassword(this.service, account, credentials);
   }
@@ -263,7 +263,7 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
    *
    * @throws {@link ImperativeError} when keytar is null or undefined.
    */
-  private checkForKeytar(): void {
+  private async checkForKeytar(): Promise<void> {
       if (this.keytar == null) {
           if (this.loadError == null) {
               throw new ImperativeError({
@@ -274,6 +274,11 @@ export class DefaultCredentialManager extends AbstractCredentialManager {
           } else {
               throw this.loadError;
           }
+      }
+      try {
+        await this.keytar.findPassword('zowe');
+      } catch (err) {
+        throw new ImperativeError({msg: `Failed to load credentials with keytar. Error Details: ${err.message}`});
       }
   }
 

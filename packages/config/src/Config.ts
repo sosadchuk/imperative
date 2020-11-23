@@ -377,6 +377,9 @@ export class Config {
             // Merge "defaults" - only add new properties from this layer
             for (const [name, value] of Object.entries(layer.properties.defaults))
                 c.defaults[name] = c.defaults[name] || value;
+
+            // Merge "secure" - create a unique set from all entires
+            c.secure = Array.from(new Set(layer.properties.secure.concat(c.secure)));
         });
 
         // Merge the project layer profiles
@@ -418,7 +421,14 @@ export class Config {
         if (!this.secureFields()) return;
 
         // load the secure fields
-        const s: string = await this._vault.load(Config.SECURE_ACCT);
+        let s: string;
+
+        // ISSUE: Secure array is empty with this implemented during zdev config list
+        try {
+            s = await this._vault.load(Config.SECURE_ACCT);
+        } catch (err) {
+            s = null;
+        }
         if (s == null) return;
         this._secure = JSON.parse(s);
 

@@ -238,17 +238,22 @@ export class Imperative {
                  */
                 let opts: IConfigOpts = null;
                 if (CredentialManagerFactory.initialized) {
-                    opts = {
-                        vault: {
-                            load: ((key: string): Promise<string> => {
-                                return CredentialManagerFactory.manager.load(key, true)
-                            }),
-                            save: ((key: string, value: any): Promise<void> => {
-                                return CredentialManagerFactory.manager.save(key, value);
-                            }),
-                            name: CredentialManagerFactory.manager.name
-                        }
-                    };
+                    try {
+                        opts = {
+                            vault: {
+                                load: ((key: string): Promise<string> => {
+                                    return CredentialManagerFactory.manager.load(key, true)
+                                }),
+                                save: ((key: string, value: any): Promise<void> => {
+                                    return CredentialManagerFactory.manager.save(key, value);
+                                }),
+                                name: CredentialManagerFactory.manager.name
+                            }
+                        };
+                        opts.vault.load("test");
+                    } catch (err) {
+                        opts = {};
+                    }
                     ImperativeConfig.instance.config = await Config.load(ImperativeConfig.instance.rootCommandName, opts);
                 }
 
@@ -324,6 +329,7 @@ export class Imperative {
                     const {writeFileSync} = require("fs");
                     writeFileSync(Imperative.DEFAULT_DEBUG_FILE, error.report);
                 }
+
                 initializationFailed(
                     error instanceof ImperativeError ?
                         error :
