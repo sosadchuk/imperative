@@ -537,7 +537,6 @@ export class CliUtils {
 
     public static async interactiveSelection(menu: string[], opts?: IInteractiveOptions): Promise<number> {
         return new Promise<number>(async (resolve, reject) => {
-            // TODO(Fernando) - Move terminal code out of the API
             // TODO(Fernando) - Add corresponding `@types/terminal-kit`
             const term = require("terminal-kit").terminal;
             if (opts?.header != null) term.defaultColor(opts.header);
@@ -559,7 +558,7 @@ export class CliUtils {
                 resolve(userInteraction.selectedIndex + 1);
             } catch(err) {
                 term.grabInput(false);
-                reject("Oh oh! Something went wrong!\nDetails:\n" + err.message);
+                throw new ImperativeError({msg: "Unable to provide interactive selection\nDetails:\n" + err.message, additionalDetails: err});
             }
         });
     }

@@ -242,7 +242,7 @@ export class CommandResponse implements ICommandResponseApi {
                  * the user.
                  * @param {ICommandOutputFormat} format
                  */
-                public output(format: ICommandOutputFormat): void {
+                public output(format: ICommandOutputFormat, silent: boolean = false): any {
 
                     // The input parameters must not be null and we will make a copy to not alter the original
                     ImperativeExpect.toNotBeNullOrUndefined(format, "No format parameters were supplied");
@@ -282,12 +282,13 @@ export class CommandResponse implements ICommandResponseApi {
                     // Format the output for the command, if an error occurs, output the format error data
                     // so that the response is still available to the user
                     try {
-                        this.formatOutput(formatCopy, outer);
+                        this.formatOutput(formatCopy, outer, silent);
                     } catch (formatErr) {
                         outer.console.errorHeader(`Non-formatted output data`);
                         outer.console.error(`${inspect(format.output, { compact: true } as any)}`);
                         throw formatErr;
                     }
+                    return formatCopy;
                 }
 
                 /**
@@ -300,7 +301,7 @@ export class CommandResponse implements ICommandResponseApi {
                  * @param {Arguments} args - the arguments passed on the command line by the user
                  * @memberof CommandProcessor
                  */
-                private formatOutput(params: ICommandOutputFormat, response: CommandResponse) {
+                public formatOutput(params: ICommandOutputFormat, response: CommandResponse, silent: boolean = false): string {
 
                     // If a single filter is specified, save the field the data was extracted from
                     const extractedFrom = (params.fields != null && params.fields.length === 1 && typeof params.output !== "string") ?
@@ -320,7 +321,10 @@ export class CommandResponse implements ICommandResponseApi {
                             }
 
                             // Log the string data
-                            response.console.log(params.output);
+                            if (!silent) {
+                                response.console.log(params.output);
+                            }
+                            return params.output;
                             break;
                         // Output the data as a list of strings
                         case "list":
@@ -338,7 +342,10 @@ export class CommandResponse implements ICommandResponseApi {
 
                                 // Join each array entry on a newline
                                 params.output = list.join("\n");
-                                response.console.log(params.output);
+                                if (!silent) {
+                                    response.console.log(params.output);
+                                }
+                                return params.output;
                             } else {
                                 throw new ImperativeError({
                                     msg: this.errorDetails(params, "Arrays", extractedFrom)
@@ -364,7 +371,10 @@ export class CommandResponse implements ICommandResponseApi {
                                 }
 
                                 // Print the output
-                                response.console.log(pretty);
+                                if (!silent) {
+                                    response.console.log(pretty);
+                                }
+                                return pretty;
                             } else {
                                 throw new ImperativeError({
                                     msg: this.errorDetails(params, "JSON objects or Arrays", extractedFrom)
@@ -396,7 +406,10 @@ export class CommandResponse implements ICommandResponseApi {
                                 }
 
                                 // Print the table
-                                response.console.log(table);
+                                if (!silent) {
+                                    response.console.log(table);
+                                }
+                                return table;
                             } else {
                                 throw new ImperativeError({
                                     msg: this.errorDetails(params, "JSON objects or Arrays", extractedFrom)

@@ -10,7 +10,9 @@
 */
 
 import { ICommandOutputFormat } from "../../../../../src/doc/response/response/ICommandOutputFormat";
+import { CommandResponse } from "../../../../response/CommandResponse";
 
 export interface IHandlerFormatOutputApi {
     output: (format: ICommandOutputFormat) => void;
+    formatOutput(params: ICommandOutputFormat, response: CommandResponse, silent: boolean): string;
 }
