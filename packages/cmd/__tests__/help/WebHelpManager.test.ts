@@ -22,6 +22,8 @@ import { ImperativeConfig, GuiResult, ProcessUtils } from "../../../utilities";
 import { WebHelpGenerator } from "../..";
 import { IImperativeConfig } from "../../../imperative/src/doc/IImperativeConfig";
 
+const ORIGINAL_STDOUT_WRITE = process.stdout.write;
+
 describe("WebHelpManager", () => {
     describe("buildHelp", () => {
         const configForHelp: IImperativeConfig = {
@@ -79,16 +81,20 @@ describe("WebHelpManager", () => {
         });
 
         it("when there is no GUI available should not display help", async () => {
+            let stdoutMsg: string = "";
+            process.stdout.write = jest.fn((data) => {
+                stdoutMsg += data;
+            });
             const realBuildHelp = WebHelpGenerator.prototype.buildHelp;
             const mockBuildHelp = jest.fn();
             WebHelpGenerator.prototype.buildHelp = mockBuildHelp;
 
             ProcessUtils.isGuiAvailable = jest.fn(() => GuiResult.NO_GUI_NO_DISPLAY);
             WebHelpManager.instance.openRootHelp(cmdReponse);
+            process.stderr.write = ORIGINAL_STDOUT_WRITE;
 
             expect(mockBuildHelp).not.toHaveBeenCalled();
-            const jsonResult = cmdReponse.buildJsonResponse();
-            expect(jsonResult.stdout.toString()).toContain(
+            expect(stdoutMsg).toContain(
                 "You are running in an environment with no graphical interface"
             );
             expect(fs.existsSync(webHelpDirNm)).toBe(false);
