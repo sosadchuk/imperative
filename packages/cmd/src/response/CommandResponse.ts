@@ -721,7 +721,9 @@ export class CommandResponse implements ICommandResponseApi {
                         });
                         outer.mProgressBar.terminate();
                         process.stdout.write(outer.mStdout);
+                        outer.mStdout = Buffer.alloc(0);
                         process.stderr.write(outer.mStderr);
+                        outer.mStderr = Buffer.alloc(0);
                         this.mProgressTask = undefined;
 
                         // clear the progress bar field
@@ -914,7 +916,8 @@ export class CommandResponse implements ICommandResponseApi {
     private writeAndBufferStdout(data: Buffer | string) {
         this.bufferStdout(data);
         if (this.write()) {
-            this.writeStdout(data);
+            this.writeStdout(this.mStdout);
+            this.mStdout = Buffer.alloc(0);
         }
     }
 
@@ -937,7 +940,8 @@ export class CommandResponse implements ICommandResponseApi {
     private writeAndBufferStderr(data: Buffer | string) {
         this.bufferStderr(data);
         if (this.write()) {
-            this.writeStderr(data);
+            this.writeStderr(this.mStderr);
+            this.mStderr = Buffer.alloc(0);
         }
     }
 

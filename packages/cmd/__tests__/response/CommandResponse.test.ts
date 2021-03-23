@@ -294,7 +294,7 @@ describe("Command Response", () => {
         response.console.log(msg);
         process.stdout.write = ORIGINAL_STDOUT_WRITE;
         expect(messages).toMatchSnapshot();
-        expect(response.buildJsonResponse().stdout.toString()).toEqual(msg + "\n");
+        expect(messages).toEqual(msg + "\n");
         expect(response.buildJsonResponse()).toMatchSnapshot();
     });
 
@@ -308,7 +308,7 @@ describe("Command Response", () => {
         response.console.error(msg);
         process.stderr.write = ORIGINAL_STDERR_WRITE;
         expect(messages).toMatchSnapshot();
-        expect(response.buildJsonResponse().stderr.toString()).toEqual(msg + "\n");
+        expect(messages).toEqual(msg + "\n");
         expect(response.buildJsonResponse()).toMatchSnapshot();
     });
 
@@ -330,8 +330,8 @@ describe("Command Response", () => {
         process.stdout.write = ORIGINAL_STDOUT_WRITE;
         expect(stdoutMsg).toMatchSnapshot();
         expect(stderrMsg).toMatchSnapshot();
-        expect(response.buildJsonResponse().stdout.toString()).toEqual(stdoutMessage + "\n");
-        expect(response.buildJsonResponse().stderr.toString()).toEqual(stderrMessage + "\n");
+        expect(stdoutMsg).toEqual(stdoutMessage + "\n");
+        expect(stderrMsg).toEqual(stderrMessage + "\n");
         expect(response.buildJsonResponse()).toMatchSnapshot();
     });
 
@@ -345,7 +345,7 @@ describe("Command Response", () => {
         response.console.log(Buffer.from(msg));
         process.stdout.write = ORIGINAL_STDOUT_WRITE;
         expect(messages).toMatchSnapshot();
-        expect(response.buildJsonResponse().stdout.toString()).toEqual(msg);
+        expect(messages).toEqual(msg);
         expect(response.buildJsonResponse()).toMatchSnapshot();
     });
 
@@ -359,7 +359,7 @@ describe("Command Response", () => {
         response.console.error(Buffer.from(msg));
         process.stderr.write = ORIGINAL_STDERR_WRITE;
         expect(messages).toMatchSnapshot();
-        expect(response.buildJsonResponse().stderr.toString()).toEqual(msg);
+        expect(messages).toEqual(msg);
         expect(response.buildJsonResponse()).toMatchSnapshot();
     });
 
@@ -377,7 +377,7 @@ describe("Command Response", () => {
         process.stderr.write = ORIGINAL_STDERR_WRITE;
         expect(chalk.red).toHaveBeenCalledTimes(1);
         expect(messages).toMatchSnapshot();
-        expect(response.buildJsonResponse().stderr.toString()).toEqual(msg + ":\n");
+        expect(messages).toEqual(msg + ":\n");
         expect(response.buildJsonResponse()).toMatchSnapshot();
     });
 
@@ -466,7 +466,7 @@ describe("Command Response", () => {
         response.console.log(format, msg);
         process.stdout.write = ORIGINAL_STDOUT_WRITE;
         expect(messages).toMatchSnapshot();
-        expect(response.buildJsonResponse().stdout.toString()).toEqual("hello from the tests\n");
+        expect(messages).toEqual("hello from the tests\n");
         expect(response.buildJsonResponse()).toMatchSnapshot();
     });
 
@@ -481,7 +481,7 @@ describe("Command Response", () => {
         response.console.error(format, msg);
         process.stderr.write = ORIGINAL_STDERR_WRITE;
         expect(messages).toMatchSnapshot();
-        expect(response.buildJsonResponse().stderr.toString()).toEqual("hello from the tests\n");
+        expect(messages).toEqual("hello from the tests\n");
         expect(response.buildJsonResponse()).toMatchSnapshot();
     });
 

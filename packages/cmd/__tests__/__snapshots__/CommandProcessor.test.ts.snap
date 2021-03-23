@@ -49,7 +49,7 @@ Object {
 }
 `;
 
-exports[`Command Processor should build the help if requested 1`] = `"Build help invoked!"`;
+exports[`Command Processor should build the help if requested 1`] = `""`;
 
 exports[`Command Processor should build the help if requested 2`] = `
 Object {
@@ -62,27 +62,7 @@ Object {
     "type": "Buffer",
   },
   "stdout": Object {
-    "data": Array [
-      66,
-      117,
-      105,
-      108,
-      100,
-      32,
-      104,
-      101,
-      108,
-      112,
-      32,
-      105,
-      110,
-      118,
-      111,
-      107,
-      101,
-      100,
-      33,
-    ],
+    "data": Array [],
     "type": "Buffer",
   },
   "success": true,
