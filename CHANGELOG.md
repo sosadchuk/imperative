@@ -2,6 +2,10 @@
 
 All notable changes to the Imperative package will be documented in this file.
 
+## Recent Changes
+
+- BugFix: Reallocate the `stdout` and `stderr` buffers after data write to console, preventing duplication of output when calling `mProgressApi`'s `endBar()`.
+
 ## `4.12.0`
 
 - Enhancement: Added decompression support for REST responses with Content-Encoding `gzip`, `deflate`, or `br`. [#318](https://github.com/zowe/imperative/issues/318)
