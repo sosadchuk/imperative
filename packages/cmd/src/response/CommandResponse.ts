@@ -914,7 +914,8 @@ export class CommandResponse implements ICommandResponseApi {
      * @memberof CommandResponse
      */
     private writeAndBufferStdout(data: Buffer | string) {
-        this.bufferStdout(data);
+        if (!this.control.silent)
+            this.bufferStdout(data);
         if (this.write()) {
             this.writeStdout(this.mStdout);
             this.mStdout = Buffer.alloc(0);
@@ -938,7 +939,8 @@ export class CommandResponse implements ICommandResponseApi {
      * @memberof CommandResponse
      */
     private writeAndBufferStderr(data: Buffer | string) {
-        this.bufferStderr(data);
+        if (!this.control.silent)
+            this.bufferStderr(data);
         if (this.write()) {
             this.writeStderr(this.mStderr);
             this.mStderr = Buffer.alloc(0);
